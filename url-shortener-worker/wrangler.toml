@@ -1,0 +1,9 @@
+name = "url-shortener-worker"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+[env.production]
+name = "url-shortener-worker"
+
+[env.staging]
+name = "url-shortener-worker-staging"

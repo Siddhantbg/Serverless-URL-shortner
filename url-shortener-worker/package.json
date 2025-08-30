@@ -1,0 +1,14 @@
+{
+  "name": "url-shortener-worker",
+  "version": "1.0.0",
+  "description": "A simple URL shortener using Cloudflare Workers",
+  "main": "src/index.js",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}

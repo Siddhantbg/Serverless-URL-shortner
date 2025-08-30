@@ -1,0 +1,20 @@
+# Ignore node_modules folders
+node_modules/
+url-shortener-frontend/node_modules/
+url-shortener-worker/node_modules/
+
+# Ignore logs
+*.log
+
+# Ignore build output
+/dist/
+url-shortener-frontend/dist/
+url-shortener-worker/dist/
+
+# Ignore environment files
+.env
+.env.*
+
+# Ignore OS generated files
+.DS_Store
+Thumbs.db
