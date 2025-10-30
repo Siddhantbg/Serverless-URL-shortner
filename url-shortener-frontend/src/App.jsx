@@ -7,7 +7,8 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const WORKER_URL = 'http://127.0.0.1:8787' // Cloudflare Worker local development URL
+  // API base configured via Vite env (fallback to local Worker in dev)
+  const WORKER_URL = (import.meta.env?.VITE_API_BASE || 'http://127.0.0.1:8787').replace(/\/$/, '')
 
   const handleShorten = async () => {
     if (!url.trim()) return

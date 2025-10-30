@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// .wrangler/tmp/bundle-HjHp5G/checked-fetch.js
+// .wrangler/tmp/bundle-oeo0yC/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -27,24 +27,27 @@ globalThis.fetch = new Proxy(globalThis.fetch, {
   }
 });
 
-// .wrangler/tmp/bundle-HjHp5G/strip-cf-connecting-ip-header.js
-function stripCfConnectingIPHeader(input, init) {
-  const request = new Request(input, init);
-  request.headers.delete("CF-Connecting-IP");
-  return request;
-}
-__name(stripCfConnectingIPHeader, "stripCfConnectingIPHeader");
-globalThis.fetch = new Proxy(globalThis.fetch, {
-  apply(target, thisArg, argArray) {
-    return Reflect.apply(target, thisArg, [
-      stripCfConnectingIPHeader.apply(null, argArray)
-    ]);
-  }
-});
-
 // src/index.js
-var urlDatabase = {};
 var BASE62_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+var localDB = /* @__PURE__ */ new Map();
+async function kvGet(env, key) {
+  if (env && env.URLS) {
+    return await env.URLS.get(key);
+  }
+  const val = localDB.get(key);
+  return val ? JSON.stringify(val) : null;
+}
+__name(kvGet, "kvGet");
+async function kvPut(env, key, value) {
+  if (env && env.URLS) {
+    return await env.URLS.put(key, value);
+  }
+  try {
+    localDB.set(key, JSON.parse(value));
+  } catch {
+  }
+}
+__name(kvPut, "kvPut");
 function generateShortCode() {
   let result = "";
   for (let i = 0; i < 6; i++) {
@@ -81,10 +84,22 @@ function addCORSHeaders(response) {
   return response;
 }
 __name(addCORSHeaders, "addCORSHeaders");
-async function handleShortenRequest(request) {
+async function handleShortenRequest(request, env) {
   try {
-    const body = await request.json();
+    const raw = await request.text();
+    console.log("Raw body received:", raw);
+    let body = null;
+    if (raw && raw.length) {
+      try {
+        body = JSON.parse(raw);
+        console.log("Parsed body:", body);
+      } catch (e) {
+        console.error("JSON parse error:", e.message);
+        body = null;
+      }
+    }
     if (!body || !body.url) {
+      console.log("Body validation failed. body:", body);
       return addCORSHeaders(new Response(
         JSON.stringify({ error: "URL is required" }),
         {
@@ -94,7 +109,9 @@ async function handleShortenRequest(request) {
       ));
     }
     const originalUrl = body.url.trim();
+    console.log("Original URL after trim:", originalUrl);
     if (!isValidUrl(originalUrl)) {
+      console.log("URL validation failed for:", originalUrl);
       return addCORSHeaders(new Response(
         JSON.stringify({ error: "Invalid URL format" }),
         {
@@ -103,13 +120,15 @@ async function handleShortenRequest(request) {
         }
       ));
     }
+    console.log("URL validation passed, generating short code...");
     let shortCode;
     let attempts = 0;
     do {
       shortCode = generateShortCode();
       attempts++;
-    } while (urlDatabase[shortCode] && attempts < 10);
+    } while (await kvGet(env, shortCode) && attempts < 10);
     if (attempts >= 10) {
+      console.error("Failed to generate unique code after 10 attempts");
       return addCORSHeaders(new Response(
         JSON.stringify({ error: "Failed to generate unique code" }),
         {
@@ -118,11 +137,14 @@ async function handleShortenRequest(request) {
         }
       ));
     }
-    urlDatabase[shortCode] = {
+    console.log("Generated short code:", shortCode);
+    const record = {
       url: originalUrl,
       createdAt: (/* @__PURE__ */ new Date()).toISOString(),
       clicks: 0
     };
+    await kvPut(env, shortCode, JSON.stringify(record));
+    console.log("Stored in KV successfully");
     const shortUrl = `${new URL(request.url).origin}/${shortCode}`;
     return addCORSHeaders(new Response(
       JSON.stringify({
@@ -136,6 +158,7 @@ async function handleShortenRequest(request) {
       }
     ));
   } catch (error) {
+    console.error("Caught error in handleShortenRequest:", error.message, error.stack);
     return addCORSHeaders(new Response(
       JSON.stringify({ error: "Invalid JSON body" }),
       {
@@ -146,9 +169,9 @@ async function handleShortenRequest(request) {
   }
 }
 __name(handleShortenRequest, "handleShortenRequest");
-function handleRedirectRequest(shortCode) {
-  const urlData = urlDatabase[shortCode];
-  if (!urlData) {
+async function handleRedirectRequest(shortCode, env) {
+  const raw = await kvGet(env, shortCode);
+  if (!raw) {
     return addCORSHeaders(new Response(
       JSON.stringify({ error: "Short URL not found" }),
       {
@@ -157,14 +180,16 @@ function handleRedirectRequest(shortCode) {
       }
     ));
   }
-  urlData.clicks++;
+  const urlData = JSON.parse(raw);
+  urlData.clicks = (urlData.clicks || 0) + 1;
   urlData.lastAccessed = (/* @__PURE__ */ new Date()).toISOString();
+  await kvPut(env, shortCode, JSON.stringify(urlData));
   return Response.redirect(urlData.url, 302);
 }
 __name(handleRedirectRequest, "handleRedirectRequest");
-function handleStatsRequest(shortCode) {
-  const urlData = urlDatabase[shortCode];
-  if (!urlData) {
+async function handleStatsRequest(shortCode, env) {
+  const raw = await kvGet(env, shortCode);
+  if (!raw) {
     return addCORSHeaders(new Response(
       JSON.stringify({ error: "Short URL not found" }),
       {
@@ -173,11 +198,12 @@ function handleStatsRequest(shortCode) {
       }
     ));
   }
+  const urlData = JSON.parse(raw);
   return addCORSHeaders(new Response(
     JSON.stringify({
       shortCode,
       originalUrl: urlData.url,
-      clicks: urlData.clicks,
+      clicks: urlData.clicks || 0,
       createdAt: urlData.createdAt,
       lastAccessed: urlData.lastAccessed || null
     }),
@@ -190,6 +216,10 @@ function handleStatsRequest(shortCode) {
 __name(handleStatsRequest, "handleStatsRequest");
 var src_default = {
   async fetch(request, env, ctx) {
+    try {
+      console.log("Env bindings available:", Object.keys(env || {}));
+    } catch (e) {
+    }
     const url = new URL(request.url);
     const method = request.method;
     const pathname = url.pathname;
@@ -197,16 +227,16 @@ var src_default = {
       return handleCORS();
     }
     if (method === "POST" && pathname === "/shorten") {
-      return handleShortenRequest(request);
+      return handleShortenRequest(request, env);
     }
     if (method === "GET" && pathname.startsWith("/stats/")) {
       const shortCode = pathname.substring(7);
-      return handleStatsRequest(shortCode);
+      return handleStatsRequest(shortCode, env);
     }
     if (method === "GET" && pathname.length > 1) {
       const shortCode = pathname.substring(1);
       if (/^[0-9A-Za-z]{6}$/.test(shortCode)) {
-        return handleRedirectRequest(shortCode);
+        return handleRedirectRequest(shortCode, env);
       }
     }
     if (method === "GET" && pathname === "/") {
@@ -253,7 +283,7 @@ curl -X POST ${url.origin}/shorten \\
             <pre>{"shortCode": "abc123", "originalUrl": "https://example.com/very/long/url", "clicks": 5, "createdAt": "2024-01-01T12:00:00.000Z"}</pre>
           </div>
 
-          <p><small>Database contains ${Object.keys(urlDatabase).length} short URLs.</small></p>
+          
         </body>
         </html>
       `;
@@ -312,7 +342,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-HjHp5G/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-oeo0yC/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -344,22 +374,24 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-HjHp5G/middleware-loader.entry.ts
-var __Facade_ScheduledController__ = class {
+// .wrangler/tmp/bundle-oeo0yC/middleware-loader.entry.ts
+var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
     this.cron = cron;
     this.#noRetry = noRetry;
   }
+  static {
+    __name(this, "__Facade_ScheduledController__");
+  }
   #noRetry;
   noRetry() {
-    if (!(this instanceof __Facade_ScheduledController__)) {
+    if (!(this instanceof ___Facade_ScheduledController__)) {
       throw new TypeError("Illegal invocation");
     }
     this.#noRetry();
   }
 };
-__name(__Facade_ScheduledController__, "__Facade_ScheduledController__");
 function wrapExportedHandler(worker) {
   if (__INTERNAL_WRANGLER_MIDDLEWARE__ === void 0 || __INTERNAL_WRANGLER_MIDDLEWARE__.length === 0) {
     return worker;
@@ -400,15 +432,15 @@ function wrapWorkerEntrypoint(klass) {
     __facade_register__(middleware);
   }
   return class extends klass {
-    #fetchDispatcher = (request, env, ctx) => {
+    #fetchDispatcher = /* @__PURE__ */ __name((request, env, ctx) => {
       this.env = env;
       this.ctx = ctx;
       if (super.fetch === void 0) {
         throw new Error("Entrypoint class does not define a fetch() function.");
       }
       return super.fetch(request);
-    };
-    #dispatcher = (type, init) => {
+    }, "#fetchDispatcher");
+    #dispatcher = /* @__PURE__ */ __name((type, init) => {
       if (type === "scheduled" && super.scheduled !== void 0) {
         const controller = new __Facade_ScheduledController__(
           Date.now(),
@@ -418,7 +450,7 @@ function wrapWorkerEntrypoint(klass) {
         );
         return super.scheduled(controller);
       }
-    };
+    }, "#dispatcher");
     fetch(request) {
       return __facade_invoke__(
         request,

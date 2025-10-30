@@ -1,8 +1,30 @@
-// In-memory storage for URL mappings (resets on worker restart)
-const urlDatabase = {};
+// Using Cloudflare KV for persistent URL mappings
+// Bind a KV namespace named `URLS` in wrangler.toml
 
 // Base62 characters for short code generation
 const BASE62_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+
+// Local fallback store for dev if KV binding isn't available
+const localDB = new Map();
+
+async function kvGet(env, key) {
+  if (env && env.URLS) {
+    return await env.URLS.get(key);
+  }
+  const val = localDB.get(key);
+  return val ? JSON.stringify(val) : null;
+}
+
+async function kvPut(env, key, value) {
+  if (env && env.URLS) {
+    return await env.URLS.put(key, value);
+  }
+  try {
+    localDB.set(key, JSON.parse(value));
+  } catch {
+    // ignore parse errors in fallback
+  }
+}
 
 /**
  * Generate a random 6-character Base62 string
@@ -55,11 +77,24 @@ function addCORSHeaders(response) {
 /**
  * Handle POST /shorten - Create a short URL
  */
-async function handleShortenRequest(request) {
+async function handleShortenRequest(request, env) {
   try {
-    const body = await request.json();
+    // Parse body robustly: read raw text once, then JSON.parse
+    const raw = await request.text();
+    console.log('Raw body received:', raw);
+    let body = null;
+    if (raw && raw.length) {
+      try {
+        body = JSON.parse(raw);
+        console.log('Parsed body:', body);
+      } catch (e) {
+        console.error('JSON parse error:', e.message);
+        body = null;
+      }
+    }
     
     if (!body || !body.url) {
+      console.log('Body validation failed. body:', body);
       return addCORSHeaders(new Response(
         JSON.stringify({ error: 'URL is required' }), 
         { 
@@ -70,8 +105,10 @@ async function handleShortenRequest(request) {
     }
 
     const originalUrl = body.url.trim();
+    console.log('Original URL after trim:', originalUrl);
     
     if (!isValidUrl(originalUrl)) {
+      console.log('URL validation failed for:', originalUrl);
       return addCORSHeaders(new Response(
         JSON.stringify({ error: 'Invalid URL format' }), 
         { 
@@ -80,16 +117,19 @@ async function handleShortenRequest(request) {
         }
       ));
     }
+    
+    console.log('URL validation passed, generating short code...');
 
-    // Generate unique short code
+    // Generate unique short code (ensure uniqueness in KV)
     let shortCode;
     let attempts = 0;
     do {
       shortCode = generateShortCode();
       attempts++;
-    } while (urlDatabase[shortCode] && attempts < 10);
+    } while ((await kvGet(env, shortCode)) && attempts < 10);
 
     if (attempts >= 10) {
+      console.error('Failed to generate unique code after 10 attempts');
       return addCORSHeaders(new Response(
         JSON.stringify({ error: 'Failed to generate unique code' }), 
         { 
@@ -99,15 +139,19 @@ async function handleShortenRequest(request) {
       ));
     }
 
-    // Store the mapping
-    urlDatabase[shortCode] = {
+    console.log('Generated short code:', shortCode);
+
+    // Store the mapping in KV
+    const record = {
       url: originalUrl,
       createdAt: new Date().toISOString(),
       clicks: 0
     };
+  await kvPut(env, shortCode, JSON.stringify(record));
+    console.log('Stored in KV successfully');
 
     // Create the short URL
-    const shortUrl = `${new URL(request.url).origin}/${shortCode}`;
+  const shortUrl = `${new URL(request.url).origin}/${shortCode}`;
 
     return addCORSHeaders(new Response(
       JSON.stringify({ 
@@ -122,6 +166,8 @@ async function handleShortenRequest(request) {
     ));
 
   } catch (error) {
+    // Surface a clearer parsing error while keeping CORS headers
+    console.error('Caught error in handleShortenRequest:', error.message, error.stack);
     return addCORSHeaders(new Response(
       JSON.stringify({ error: 'Invalid JSON body' }), 
       { 
@@ -135,10 +181,9 @@ async function handleShortenRequest(request) {
 /**
  * Handle GET /:code - Redirect to original URL
  */
-function handleRedirectRequest(shortCode) {
-  const urlData = urlDatabase[shortCode];
-  
-  if (!urlData) {
+async function handleRedirectRequest(shortCode, env) {
+  const raw = await kvGet(env, shortCode);
+  if (!raw) {
     return addCORSHeaders(new Response(
       JSON.stringify({ error: 'Short URL not found' }), 
       { 
@@ -148,9 +193,11 @@ function handleRedirectRequest(shortCode) {
     ));
   }
 
-  // Increment click counter
-  urlData.clicks++;
+  const urlData = JSON.parse(raw);
+  // Increment click counter and update last access
+  urlData.clicks = (urlData.clicks || 0) + 1;
   urlData.lastAccessed = new Date().toISOString();
+  await kvPut(env, shortCode, JSON.stringify(urlData));
 
   // Redirect to original URL
   return Response.redirect(urlData.url, 302);
@@ -159,10 +206,9 @@ function handleRedirectRequest(shortCode) {
 /**
  * Handle GET /stats/:code - Get URL statistics (bonus feature)
  */
-function handleStatsRequest(shortCode) {
-  const urlData = urlDatabase[shortCode];
-  
-  if (!urlData) {
+async function handleStatsRequest(shortCode, env) {
+  const raw = await kvGet(env, shortCode);
+  if (!raw) {
     return addCORSHeaders(new Response(
       JSON.stringify({ error: 'Short URL not found' }), 
       { 
@@ -172,11 +218,12 @@ function handleStatsRequest(shortCode) {
     ));
   }
 
+  const urlData = JSON.parse(raw);
   return addCORSHeaders(new Response(
     JSON.stringify({
       shortCode: shortCode,
       originalUrl: urlData.url,
-      clicks: urlData.clicks,
+      clicks: urlData.clicks || 0,
       createdAt: urlData.createdAt,
       lastAccessed: urlData.lastAccessed || null
     }), 
@@ -192,6 +239,11 @@ function handleStatsRequest(shortCode) {
  */
 export default {
   async fetch(request, env, ctx) {
+    try {
+      console.log('Env bindings available:', Object.keys(env || {}));
+    } catch (e) {
+      // ignore logging errors
+    }
     const url = new URL(request.url);
     const method = request.method;
     const pathname = url.pathname;
@@ -203,13 +255,13 @@ export default {
 
     // Route: POST /shorten
     if (method === 'POST' && pathname === '/shorten') {
-      return handleShortenRequest(request);
+      return handleShortenRequest(request, env);
     }
 
     // Route: GET /stats/:code (bonus feature)
     if (method === 'GET' && pathname.startsWith('/stats/')) {
       const shortCode = pathname.substring(7); // Remove '/stats/'
-      return handleStatsRequest(shortCode);
+      return handleStatsRequest(shortCode, env);
     }
 
     // Route: GET /:code (redirect)
@@ -218,7 +270,7 @@ export default {
       
       // Basic validation for short code format
       if (/^[0-9A-Za-z]{6}$/.test(shortCode)) {
-        return handleRedirectRequest(shortCode);
+        return handleRedirectRequest(shortCode, env);
       }
     }
 
@@ -267,7 +319,7 @@ curl -X POST ${url.origin}/shorten \\
             <pre>{"shortCode": "abc123", "originalUrl": "https://example.com/very/long/url", "clicks": 5, "createdAt": "2024-01-01T12:00:00.000Z"}</pre>
           </div>
 
-          <p><small>Database contains ${Object.keys(urlDatabase).length} short URLs.</small></p>
+          
         </body>
         </html>
       `;
