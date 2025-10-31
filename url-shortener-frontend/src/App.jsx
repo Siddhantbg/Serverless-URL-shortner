@@ -18,7 +18,7 @@ function App() {
     setShortLink('')
 
     try {
-      const response = await fetch(`${WORKER_URL}/shorten`, {
+      const response = await fetch(`${WORKER_URL}/shorten?url=${encodeURIComponent(url.trim())}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

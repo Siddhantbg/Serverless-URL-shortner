@@ -78,49 +78,48 @@ function addCORSHeaders(response) {
  * Handle POST /shorten - Create a short URL
  */
 async function handleShortenRequest(request, env) {
+  // 1) Parse body with robust fallback
+  let body = null;
+  const req1 = request.clone();
   try {
-    // Parse body robustly: read raw text once, then JSON.parse
-    const raw = await request.text();
-    console.log('Raw body received:', raw);
-    let body = null;
-    if (raw && raw.length) {
-      try {
-        body = JSON.parse(raw);
-        console.log('Parsed body:', body);
-      } catch (e) {
-        console.error('JSON parse error:', e.message);
-        body = null;
-      }
+    body = await req1.json();
+  } catch {
+    try {
+      const req2 = request.clone();
+      const raw = await req2.text();
+      body = raw ? JSON.parse(raw) : null;
+    } catch {
+      body = null;
     }
-    
-    if (!body || !body.url) {
-      console.log('Body validation failed. body:', body);
-      return addCORSHeaders(new Response(
-        JSON.stringify({ error: 'URL is required' }), 
-        { 
-          status: 400, 
-          headers: { 'Content-Type': 'application/json' }
-        }
-      ));
-    }
+  }
 
-    const originalUrl = body.url.trim();
-    console.log('Original URL after trim:', originalUrl);
-    
-    if (!isValidUrl(originalUrl)) {
-      console.log('URL validation failed for:', originalUrl);
-      return addCORSHeaders(new Response(
-        JSON.stringify({ error: 'Invalid URL format' }), 
-        { 
-          status: 400, 
-          headers: { 'Content-Type': 'application/json' }
-        }
-      ));
+  // Fallback: also accept url from query string if body missing
+  let originalUrl = body && body.url ? String(body.url).trim() : '';
+  if (!originalUrl) {
+    try {
+      const u = new URL(request.url);
+      originalUrl = (u.searchParams.get('url') || '').trim();
+    } catch {
+      // ignore
     }
-    
-    console.log('URL validation passed, generating short code...');
+  }
 
-    // Generate unique short code (ensure uniqueness in KV)
+  if (!originalUrl) {
+    return addCORSHeaders(new Response(
+      JSON.stringify({ error: 'URL is required' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    ));
+  }
+
+  if (!isValidUrl(originalUrl)) {
+    return addCORSHeaders(new Response(
+      JSON.stringify({ error: 'Invalid URL format' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    ));
+  }
+
+  // 2) Main logic with explicit error reporting
+  try {
     let shortCode;
     let attempts = 0;
     do {
@@ -129,51 +128,25 @@ async function handleShortenRequest(request, env) {
     } while ((await kvGet(env, shortCode)) && attempts < 10);
 
     if (attempts >= 10) {
-      console.error('Failed to generate unique code after 10 attempts');
       return addCORSHeaders(new Response(
-        JSON.stringify({ error: 'Failed to generate unique code' }), 
-        { 
-          status: 500, 
-          headers: { 'Content-Type': 'application/json' }
-        }
+        JSON.stringify({ error: 'Failed to generate unique code' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
       ));
     }
 
-    console.log('Generated short code:', shortCode);
+    const record = { url: originalUrl, createdAt: new Date().toISOString(), clicks: 0 };
+    await kvPut(env, shortCode, JSON.stringify(record));
 
-    // Store the mapping in KV
-    const record = {
-      url: originalUrl,
-      createdAt: new Date().toISOString(),
-      clicks: 0
-    };
-  await kvPut(env, shortCode, JSON.stringify(record));
-    console.log('Stored in KV successfully');
-
-    // Create the short URL
-  const shortUrl = `${new URL(request.url).origin}/${shortCode}`;
-
+    const shortUrl = `${new URL(request.url).origin}/${shortCode}`;
     return addCORSHeaders(new Response(
-      JSON.stringify({ 
-        shortUrl: shortUrl,
-        shortCode: shortCode,
-        originalUrl: originalUrl
-      }), 
-      { 
-        status: 200, 
-        headers: { 'Content-Type': 'application/json' }
-      }
+      JSON.stringify({ shortUrl, shortCode, originalUrl }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
     ));
-
-  } catch (error) {
-    // Surface a clearer parsing error while keeping CORS headers
-    console.error('Caught error in handleShortenRequest:', error.message, error.stack);
+  } catch (err) {
+    // Temporary: surface internal error details to help diagnose prod
     return addCORSHeaders(new Response(
-      JSON.stringify({ error: 'Invalid JSON body' }), 
-      { 
-        status: 400, 
-        headers: { 'Content-Type': 'application/json' }
-      }
+      JSON.stringify({ error: 'internal', detail: String(err && err.message || err) }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
     ));
   }
 }
