@@ -2,13 +2,13 @@ name = "url-shortener-worker"
 main = "src/index.js"
 compatibility_date = "2024-01-01"
 
-[env.production]
-name = "url-shortener-worker"
-
-[env.staging]
-name = "url-shortener-worker-staging"
-
-# Cloudflare KV binding for persistent storage
+# Cloudflare KV binding for persistent storage (top-level/default env)
 kv_namespaces = [
 	{ binding = "URLS", id = "44f9bdec929f460190ea1aceef6303a0", preview_id = "46acede456a54a9da852e1c31b86d8cb" }
+]
+
+[env.production]
+name = "url-shortener-worker"
+kv_namespaces = [
+	{ binding = "URLS", id = "44f9bdec929f460190ea1aceef6303a0" }
 ]

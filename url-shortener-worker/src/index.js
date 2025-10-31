@@ -4,26 +4,18 @@
 // Base62 characters for short code generation
 const BASE62_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
-// Local fallback store for dev if KV binding isn't available
-const localDB = new Map();
-
 async function kvGet(env, key) {
-  if (env && env.URLS) {
-    return await env.URLS.get(key);
+  if (!env || !env.URLS) {
+    throw new Error('KV binding URLS is not configured');
   }
-  const val = localDB.get(key);
-  return val ? JSON.stringify(val) : null;
+  return await env.URLS.get(key);
 }
 
 async function kvPut(env, key, value) {
-  if (env && env.URLS) {
-    return await env.URLS.put(key, value);
+  if (!env || !env.URLS) {
+    throw new Error('KV binding URLS is not configured');
   }
-  try {
-    localDB.set(key, JSON.parse(value));
-  } catch {
-    // ignore parse errors in fallback
-  }
+  return await env.URLS.put(key, value);
 }
 
 /**
@@ -300,6 +292,15 @@ curl -X POST ${url.origin}/shorten \\
       return new Response(html, {
         headers: { 'Content-Type': 'text/html' }
       });
+    }
+
+    // Diagnostics: GET /healthz - check bindings (avoid 6-char path to not collide with short codes)
+    if (method === 'GET' && pathname === '/healthz') {
+      const info = {
+        hasKV: !!(env && env.URLS),
+        bindings: env ? Object.keys(env) : [],
+      };
+      return addCORSHeaders(new Response(JSON.stringify(info), { status: 200, headers: { 'Content-Type': 'application/json' } }));
     }
 
     // Default 404 response
