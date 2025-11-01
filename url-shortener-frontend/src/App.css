@@ -1,3 +1,6 @@
+/* Import Poppins font */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
 /* Reset and base styles */
 * {
   margin: 0;
@@ -6,7 +9,7 @@
 }
 
 body {
-  font-family: 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  font-family: 'Poppins', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -18,32 +21,53 @@ body {
 /* Main container */
 .app-container {
   min-height: 100vh;
-  background-color: #eed9c8;
+  background-color: #0a0a0a;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
+  position: relative;
+  overflow: hidden;
 }
 
-/* Card styling */
+/* Prism background container */
+.prism-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Card styling - Enhanced Glassmorphism */
 .card {
-  background: white;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   padding: 2.5rem;
-  border-radius: 1rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border-radius: 1.5rem;
+  box-shadow: 
+    0 8px 32px 0 rgba(0, 0, 0, 0.37),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
   width: 100%;
   max-width: 500px;
   min-width: 320px;
+  position: relative;
+  z-index: 10;
+  border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 /* Title */
 .title {
-  font-size: 2.2rem;
-  font-weight: 600;
-  color: #333;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #ffffff;
   margin-bottom: 2rem;
   text-align: center;
   letter-spacing: -0.5px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 /* Input container */
@@ -55,42 +79,50 @@ body {
 .url-input {
   width: 100%;
   padding: 0.875rem 1rem;
-  border: 2px solid #f0f0f0;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 0.75rem;
   font-size: 1rem;
-  background: white;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  font-family: 'Poppins', sans-serif;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  color: #ffffff;
+  transition: all 0.3s ease;
   margin-bottom: 1rem;
   outline: none;
 }
 
 .url-input:focus {
-  border-color: #eed9c8;
-  box-shadow: 0 0 0 3px rgba(238, 217, 200, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .url-input::placeholder {
-  color: #999;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 /* Shorten button */
 .shorten-button {
   width: 100%;
   padding: 0.875rem 1rem;
-  background-color: #eed9c8;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
   color: white;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 0.75rem;
   font-size: 1rem;
   font-weight: 600;
+  font-family: 'Poppins', sans-serif;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.1s ease;
+  transition: all 0.3s ease;
   letter-spacing: 0.5px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .shorten-button:hover:not(:disabled) {
-  background-color: #d6bfa7;
-  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
 }
 
 .shorten-button:active:not(:disabled) {
@@ -98,96 +130,114 @@ body {
 }
 
 .shorten-button:disabled {
-  background-color: #f5f5f5;
-  color: #ccc;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.4);
   cursor: not-allowed;
   transform: none;
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 /* Error container */
 .error-container {
   margin-top: 1rem;
   padding: 1rem;
-  background-color: #fff5f5;
-  border: 1px solid #fed7d7;
+  background: rgba(255, 77, 77, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 77, 77, 0.3);
   border-radius: 0.75rem;
   text-align: center;
 }
 
 .error-message {
-  color: #e53e3e;
+  color: #ffcccc;
   font-weight: 500;
   margin: 0;
   font-size: 0.9rem;
+  font-family: 'Poppins', sans-serif;
 }
 
 /* Result container */
 .result-container {
   margin-top: 1.5rem;
   padding: 1.25rem;
-  background-color: #f8f9fa;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
   border-radius: 0.75rem;
   text-align: center;
-  border: 1px solid #e9ecef;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .result-label {
   font-size: 0.9rem;
-  color: #666;
+  color: rgba(255, 255, 255, 0.8);
   margin-bottom: 0.75rem;
   font-weight: 500;
+  font-family: 'Poppins', sans-serif;
 }
 
 /* Short link */
 .short-link {
   display: inline-block;
-  color: #eed9c8;
+  color: #ffffff;
   font-weight: 600;
   font-size: 1.1rem;
+  font-family: 'Poppins', sans-serif;
   text-decoration: none;
   word-break: break-all;
   margin-bottom: 0.75rem;
   padding: 0.5rem;
   border-radius: 0.5rem;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .short-link:hover {
-  background-color: rgba(238, 217, 200, 0.1);
+  background: rgba(255, 255, 255, 0.15);
   text-decoration: underline;
+  transform: scale(1.02);
 }
 
 /* Copy button */
 .copy-button {
-  background-color: #6c757d;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
   color: white;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
   font-size: 0.875rem;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.3s ease;
   margin-right: 0.5rem;
 }
 
 .copy-button:hover {
-  background-color: #5a6268;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
 }
 
 /* Test button */
 .test-button {
-  background-color: #eed9c8;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
   color: white;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
   font-size: 0.875rem;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .test-button:hover {
-  background-color: #d6bfa7;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
 }
 
 /* Button group */

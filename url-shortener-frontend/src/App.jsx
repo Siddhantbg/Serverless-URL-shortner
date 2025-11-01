@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './App.css'
+import Prism from './components/Prism'
 
 function App() {
   const [url, setUrl] = useState('')
@@ -49,6 +50,21 @@ function App() {
 
   return (
     <div className="app-container">
+      {/* Background Prism Effect */}
+      <div className="prism-background">
+        <Prism
+          animationType="rotate"
+          timeScale={0.5}
+          height={3.5}
+          baseWidth={5.5}
+          scale={3.6}
+          hueShift={0}
+          colorFrequency={1}
+          noise={0.3}
+          glow={1}
+        />
+      </div>
+      
       <div className="card">
         <h1 className="title">URL Shortener</h1>
         <div className="input-container">
