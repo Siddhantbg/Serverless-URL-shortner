@@ -42,13 +42,28 @@ function isValidUrl(string) {
 }
 
 /**
+ * Determine the CORS origin to allow based on env.ALLOWED_ORIGINS (comma-separated)
+ * If not set, default to '*'.
+ */
+function resolveCorsOrigin(request, env) {
+  const originHdr = request.headers.get('Origin');
+  const conf = (env && env.ALLOWED_ORIGINS) ? String(env.ALLOWED_ORIGINS) : '*';
+  if (conf === '*' || !originHdr) return '*';
+  const list = conf.split(',').map(s => s.trim()).filter(Boolean);
+  if (list.includes(originHdr)) return originHdr;
+  // If not matched, be conservative and return 'null' to disallow credentialed requests
+  return 'null';
+}
+
+/**
  * Handle CORS preflight requests
  */
-function handleCORS() {
+function handleCORS(request, env) {
+  const allowOrigin = resolveCorsOrigin(request, env);
   return new Response(null, {
     status: 200,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': allowOrigin,
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
       'Access-Control-Max-Age': '86400',
@@ -59,11 +74,64 @@ function handleCORS() {
 /**
  * Add CORS headers to response
  */
-function addCORSHeaders(response) {
-  response.headers.set('Access-Control-Allow-Origin', '*');
+function addCORSHeaders(response, request, env) {
+  const allowOrigin = resolveCorsOrigin(request, env);
+  response.headers.set('Access-Control-Allow-Origin', allowOrigin);
   response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   response.headers.set('Access-Control-Allow-Headers', 'Content-Type');
   return response;
+}
+
+// ---------------- Encryption helpers (AES-GCM, base64url) ----------------
+function b64urlEncode(arr) {
+  let str = btoa(String.fromCharCode(...arr));
+  return str.replace(/=+$/,'').replace(/\+/g,'-').replace(/\//g,'_');
+}
+function b64urlDecodeToBytes(s) {
+  s = s.replace(/-/g,'+').replace(/_/g,'/');
+  const pad = s.length % 4; if (pad) s += '='.repeat(4 - pad);
+  const bin = atob(s);
+  const out = new Uint8Array(bin.length);
+  for (let i=0;i<bin.length;i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+async function importAesKeyFromEnv(env) {
+  const keyB64 = env && env.ENCRYPTION_KEY ? String(env.ENCRYPTION_KEY).trim() : '';
+  if (!keyB64) throw new Error('Encryption key not configured');
+  let raw;
+  try {
+    raw = b64urlDecodeToBytes(keyB64);
+  } catch {
+    // try standard base64 as well
+    try { raw = Uint8Array.from(atob(keyB64), c => c.charCodeAt(0)); } catch { /* ignore */ }
+  }
+  if (!raw || (raw.length !== 16 && raw.length !== 24 && raw.length !== 32)) {
+    throw new Error('ENCRYPTION_KEY must be base64/base64url of 16/24/32 bytes');
+  }
+  return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt','decrypt']);
+}
+
+async function encryptUrl(env, urlStr) {
+  if (!isValidUrl(urlStr)) throw new Error('Invalid URL');
+  const key = await importAesKeyFromEnv(env);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const enc = new TextEncoder().encode(urlStr);
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, enc));
+  const combined = new Uint8Array(iv.length + ct.length);
+  combined.set(iv, 0); combined.set(ct, iv.length);
+  return b64urlEncode(combined);
+}
+
+async function decryptCode(env, code) {
+  if (!code) throw new Error('Code required');
+  const key = await importAesKeyFromEnv(env);
+  const combined = b64urlDecodeToBytes(code);
+  if (combined.length < 13) throw new Error('Malformed code');
+  const iv = combined.slice(0,12);
+  const ct = combined.slice(12);
+  const pt = new Uint8Array(await crypto.subtle.decrypt({ name:'AES-GCM', iv }, key, ct));
+  return new TextDecoder().decode(pt);
 }
 
 /**
@@ -100,14 +168,14 @@ async function handleShortenRequest(request, env) {
     return addCORSHeaders(new Response(
       JSON.stringify({ error: 'URL is required' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
-    ));
+    ), request, env);
   }
 
   if (!isValidUrl(originalUrl)) {
     return addCORSHeaders(new Response(
       JSON.stringify({ error: 'Invalid URL format' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
-    ));
+    ), request, env);
   }
 
   // 2) Main logic with explicit error reporting
@@ -123,7 +191,7 @@ async function handleShortenRequest(request, env) {
       return addCORSHeaders(new Response(
         JSON.stringify({ error: 'Failed to generate unique code' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
-      ));
+      ), request, env);
     }
 
     const record = { url: originalUrl, createdAt: new Date().toISOString(), clicks: 0 };
@@ -133,13 +201,13 @@ async function handleShortenRequest(request, env) {
     return addCORSHeaders(new Response(
       JSON.stringify({ shortUrl, shortCode, originalUrl }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
-    ));
+    ), request, env);
   } catch (err) {
     // Temporary: surface internal error details to help diagnose prod
     return addCORSHeaders(new Response(
       JSON.stringify({ error: 'internal', detail: String(err && err.message || err) }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
-    ));
+    ), request, env);
   }
 }
 
@@ -215,7 +283,7 @@ export default {
 
     // Handle CORS preflight requests
     if (method === 'OPTIONS') {
-      return handleCORS();
+      return handleCORS(request, env);
     }
 
     // Route: POST /shorten
@@ -227,6 +295,65 @@ export default {
     if (method === 'GET' && pathname.startsWith('/stats/')) {
       const shortCode = pathname.substring(7); // Remove '/stats/'
       return handleStatsRequest(shortCode, env);
+    }
+
+    // Route: POST /encrypt - Stateless encryption; returns code and e-link
+    if (method === 'POST' && pathname === '/encrypt') {
+      try {
+        let longUrl = '';
+        try { const raw = await request.text(); longUrl = raw ? (JSON.parse(raw).url || '') : ''; } catch {}
+        if (!longUrl) { const u = new URL(request.url); longUrl = u.searchParams.get('url') || ''; }
+        const code = await encryptUrl(env, String(longUrl).trim());
+        const encryptedUrl = `${new URL(request.url).origin}/e/${code}`;
+        return addCORSHeaders(new Response(JSON.stringify({ code, encryptedUrl }), { status: 200, headers: { 'Content-Type': 'application/json' } }), request, env);
+      } catch (e) {
+        const msg = e && e.message ? e.message : String(e);
+        const status = msg.includes('key') ? 500 : 400;
+        return addCORSHeaders(new Response(JSON.stringify({ error: msg }), { status, headers: { 'Content-Type': 'application/json' } }), request, env);
+      }
+    }
+
+    // Route: GET /e/:code - decrypt and redirect
+    if (method === 'GET' && pathname.startsWith('/e/')) {
+      const code = pathname.substring(3);
+      try {
+        const originalUrl = await decryptCode(env, code);
+        return Response.redirect(originalUrl, 302);
+      } catch (e) {
+        return addCORSHeaders(new Response(JSON.stringify({ error: 'Invalid or expired link' }), { status: 400, headers: { 'Content-Type': 'application/json' } }), request, env);
+      }
+    }
+
+    // Route: GET /decrypt/:code - returns original URL
+    if (method === 'GET' && pathname.startsWith('/decrypt/')) {
+      const code = pathname.substring('/decrypt/'.length);
+      try {
+        const originalUrl = await decryptCode(env, code);
+        return addCORSHeaders(new Response(JSON.stringify({ url: originalUrl }), { status: 200, headers: { 'Content-Type': 'application/json' } }), request, env);
+      } catch (e) {
+        return addCORSHeaders(new Response(JSON.stringify({ error: 'Invalid code' }), { status: 400, headers: { 'Content-Type': 'application/json' } }), request, env);
+      }
+    }
+
+    // Route: POST /decrypt - accepts { code } or { encryptedUrl }
+    if (method === 'POST' && pathname === '/decrypt') {
+      try {
+        let code = '';
+        try {
+          const raw = await request.text();
+          const body = raw ? JSON.parse(raw) : {};
+          code = body.code || '';
+          if (!code && body.encryptedUrl) {
+            const p = new URL(body.encryptedUrl).pathname;
+            code = p.startsWith('/e/') ? p.substring(3) : p.replace(/^\/+/, '');
+          }
+        } catch {}
+        if (!code) { const u = new URL(request.url); code = u.searchParams.get('code') || ''; }
+        const originalUrl = await decryptCode(env, code);
+        return addCORSHeaders(new Response(JSON.stringify({ url: originalUrl }), { status: 200, headers: { 'Content-Type': 'application/json' } }), request, env);
+      } catch (e) {
+        return addCORSHeaders(new Response(JSON.stringify({ error: 'Invalid code' }), { status: 400, headers: { 'Content-Type': 'application/json' } }), request, env);
+      }
     }
 
     // Route: GET /:code (redirect)
@@ -296,11 +423,17 @@ curl -X POST ${url.origin}/shorten \\
 
     // Diagnostics: GET /healthz - check bindings (avoid 6-char path to not collide with short codes)
     if (method === 'GET' && pathname === '/healthz') {
+      if (env && env.HEALTHZ_TOKEN) {
+        const q = new URL(request.url).searchParams.get('t');
+        if (q !== env.HEALTHZ_TOKEN) {
+          return new Response('Forbidden', { status: 403 });
+        }
+      }
       const info = {
         hasKV: !!(env && env.URLS),
         bindings: env ? Object.keys(env) : [],
       };
-      return addCORSHeaders(new Response(JSON.stringify(info), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+      return addCORSHeaders(new Response(JSON.stringify(info), { status: 200, headers: { 'Content-Type': 'application/json' } }), request, env);
     }
 
     // Default 404 response
@@ -310,6 +443,6 @@ curl -X POST ${url.origin}/shorten \\
         status: 404, 
         headers: { 'Content-Type': 'application/json' }
       }
-    ));
+    ), request, env);
   },
 };

@@ -7,6 +7,14 @@ kv_namespaces = [
 	{ binding = "URLS", id = "44f9bdec929f460190ea1aceef6303a0", preview_id = "46acede456a54a9da852e1c31b86d8cb" }
 ]
 
+# Optional security and config variables
+[vars]
+# Comma-separated list of allowed origins for CORS; '*' means allow all
+ALLOWED_ORIGINS = "*"
+# Token to access /healthz endpoint (set to empty to disable check)
+HEALTHZ_TOKEN = ""
+# Encryption key for AES-GCM is stored as a Cloudflare Secret named ENCRYPTION_KEY
+
 [env.production]
 name = "url-shortener-worker"
 kv_namespaces = [

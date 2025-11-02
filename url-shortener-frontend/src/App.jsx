@@ -5,38 +5,44 @@ import Prism from './components/Prism'
 function App() {
   const [url, setUrl] = useState('')
   const [shortLink, setShortLink] = useState('')
+  const [service, setService] = useState('shorten') // 'shorten' | 'encrypt'
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [decryptResult, setDecryptResult] = useState('')
 
   // API base configured via Vite env (fallback to local Worker in dev)
   const WORKER_URL = (import.meta.env?.VITE_API_BASE || 'http://127.0.0.1:8787').replace(/\/$/, '')
 
-  const handleShorten = async () => {
+  const handleAction = async () => {
     if (!url.trim()) return
 
     setLoading(true)
     setError('')
     setShortLink('')
+    setDecryptResult('')
 
     try {
-      const response = await fetch(`${WORKER_URL}/shorten?url=${encodeURIComponent(url.trim())}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url: url.trim() }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to shorten URL')
+      let endpoint = ''
+      if (service === 'shorten') {
+        endpoint = '/shorten'
+      } else {
+        endpoint = '/encrypt'
       }
-
-      setShortLink(data.shortUrl)
+      const response = await fetch(`${WORKER_URL}${endpoint}?url=${encodeURIComponent(url.trim())}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url.trim() })
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Request failed')
+      if (service === 'shorten') {
+        setShortLink(data.shortUrl)
+      } else {
+        setShortLink(data.encryptedUrl)
+      }
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.')
-      console.error('Error shortening URL:', err)
+      console.error('Error:', err)
     } finally {
       setLoading(false)
     }
@@ -44,7 +50,37 @@ function App() {
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !loading) {
-      handleShorten()
+      handleAction()
+    }
+  }
+
+  const handleDecrypt = async () => {
+    if (!url.trim()) return
+    setLoading(true)
+    setError('')
+    setShortLink('')
+    setDecryptResult('')
+    try {
+      let code = ''
+      try {
+        const u = new URL(url.trim())
+        const path = u.pathname
+        code = path.startsWith('/e/') ? path.slice(3) : path.replace(/^\/+/, '')
+      } catch {
+        code = url.trim().replace(/^\s+|\s+$/g, '')
+      }
+      const res = await fetch(`${WORKER_URL}/decrypt`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to decrypt')
+      setDecryptResult(data.url)
+    } catch (err) {
+      setError(err.message || 'Failed to decrypt')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -66,11 +102,19 @@ function App() {
       </div>
       
       <div className="card">
-        <h1 className="title">URL Shortener</h1>
+        <h1 className="title">URL Tools</h1>
+        <div className="service-toggle" role="tablist" aria-label="Services">
+          <button className={`service-btn ${service==='shorten' ? 'active' : ''}`} onClick={()=>setService('shorten')}>
+            Shorten
+          </button>
+          <button className={`service-btn ${service==='encrypt' ? 'active' : ''}`} onClick={()=>setService('encrypt')}>
+            Encrypt
+          </button>
+        </div>
         <div className="input-container">
           <input
             type="url"
-            placeholder="Paste your long URL here..."
+            placeholder={service==='shorten' ? 'Paste your long URL to shorten...' : 'Paste your long URL to encrypt...' }
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             onKeyPress={handleKeyPress}
@@ -78,12 +122,22 @@ function App() {
             disabled={loading}
           />
           <button 
-            onClick={handleShorten}
+            onClick={handleAction}
             disabled={!url.trim() || loading}
             className="shorten-button"
           >
-            {loading ? 'Shortening...' : 'Shorten'}
+            {loading ? (service==='shorten' ? 'Shortening...' : 'Encrypting...') : (service==='shorten' ? 'Shorten' : 'Encrypt')}
           </button>
+          {service==='encrypt' && (
+            <button
+              onClick={handleDecrypt}
+              disabled={!url.trim() || loading}
+              className="secondary-button"
+              title="Decrypt an encrypted URL or code"
+            >
+              {loading ? 'Working...' : 'Decrypt'}
+            </button>
+          )}
         </div>
         
         {error && (
@@ -94,7 +148,7 @@ function App() {
 
         {shortLink && (
           <div className="result-container">
-            <p className="result-label">Your shortened URL:</p>
+            <p className="result-label">{service==='shorten' ? 'Your shortened URL:' : 'Your encrypted link:'}</p>
             <a
               href={shortLink}
               target="_blank"
@@ -114,11 +168,25 @@ function App() {
               <button
                 onClick={() => window.open(shortLink, '_blank')}
                 className="test-button"
-                title="Test the short link"
+                title={service==='shorten' ? 'Test the short link' : 'Open encrypted link (will auto-decrypt)'}
               >
                 🔗 Test
               </button>
             </div>
+          </div>
+        )}
+
+        {service==='encrypt' && decryptResult && (
+          <div className="result-container">
+            <p className="result-label">Decrypted URL:</p>
+            <a
+              href={decryptResult}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="short-link"
+            >
+              {decryptResult}
+            </a>
           </div>
         )}
       </div>

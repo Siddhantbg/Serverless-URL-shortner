@@ -59,6 +59,31 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
+/* Service toggle */
+.service-toggle {
+  display: flex;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.75rem;
+  padding: 0.25rem;
+  margin-bottom: 1rem;
+}
+.service-btn {
+  flex: 1;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  border: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+.service-btn.active {
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
 /* Title */
 .title {
   font-size: 2.5rem;
@@ -135,6 +160,24 @@ body {
   cursor: not-allowed;
   transform: none;
   border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Secondary button (Decrypt) */
+.secondary-button {
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.secondary-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.22);
 }
 
 /* Error container */
