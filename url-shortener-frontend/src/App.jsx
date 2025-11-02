@@ -1,23 +1,16 @@
 import { useState, useEffect } from 'react'
 import './App.css'
-import Prism from './components/Prism'
+import LandingPage from './components/LandingPage'
+import ServicesPage from './components/ServicesPage'
 import AuthModal from './components/AuthModal'
 import { auth } from './firebase'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 
 function App() {
-  const [url, setUrl] = useState('')
-  const [shortLink, setShortLink] = useState('')
-  const [service, setService] = useState('shorten') // 'shorten' | 'encrypt'
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [decryptResult, setDecryptResult] = useState('')
   const [user, setUser] = useState(null)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [idToken, setIdToken] = useState(null)
-
-  // API base configured via Vite env (fallback to local Worker in dev)
-  const WORKER_URL = (import.meta.env?.VITE_API_BASE || 'http://127.0.0.1:8787').replace(/\/$/, '')
+  const [showLanding, setShowLanding] = useState(true)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -25,6 +18,9 @@ function App() {
       if (currentUser) {
         const token = await currentUser.getIdToken()
         setIdToken(token)
+        // User is authenticated, go to services page
+        setShowLanding(false)
+        setShowAuthModal(false)
       } else {
         setIdToken(null)
       }
@@ -32,220 +28,42 @@ function App() {
     return () => unsubscribe()
   }, [])
 
-  const handleAction = async () => {
-    if (!user) {
+  const handleGetStarted = () => {
+    if (user) {
+      // Already authenticated, go directly to services
+      setShowLanding(false)
+    } else {
+      // Show auth modal
       setShowAuthModal(true)
-      return
-    }
-
-    if (!url.trim()) return
-
-    setLoading(true)
-    setError('')
-    setShortLink('')
-    setDecryptResult('')
-
-    try {
-      let endpoint = ''
-      if (service === 'shorten') {
-        endpoint = '/shorten'
-      } else {
-        endpoint = '/encrypt'
-      }
-      const headers = { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idToken}`
-      }
-      const response = await fetch(`${WORKER_URL}${endpoint}?url=${encodeURIComponent(url.trim())}`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ url: url.trim() })
-      })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Request failed')
-      if (service === 'shorten') {
-        setShortLink(data.shortUrl)
-      } else {
-        setShortLink(data.encryptedUrl)
-      }
-    } catch (err) {
-      setError(err.message || 'Something went wrong. Please try again.')
-      console.error('Error:', err)
-    } finally {
-      setLoading(false)
     }
   }
 
   const handleLogout = async () => {
     try {
       await signOut(auth)
-      setShortLink('')
-      setDecryptResult('')
+      setShowLanding(true)
     } catch (err) {
       console.error('Logout error:', err)
     }
   }
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !loading) {
-      handleAction()
-    }
-  }
-
-  const handleDecrypt = async () => {
-    if (!url.trim()) return
-    setLoading(true)
-    setError('')
-    setShortLink('')
-    setDecryptResult('')
-    try {
-      let code = ''
-      try {
-        const u = new URL(url.trim())
-        const path = u.pathname
-        code = path.startsWith('/e/') ? path.slice(3) : path.replace(/^\/+/, '')
-      } catch {
-        code = url.trim().replace(/^\s+|\s+$/g, '')
-      }
-      const res = await fetch(`${WORKER_URL}/decrypt`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code })
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to decrypt')
-      setDecryptResult(data.url)
-    } catch (err) {
-      setError(err.message || 'Failed to decrypt')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
-    <div className="app-container">
-      {/* Background Prism Effect */}
-      <div className="prism-background">
-        <Prism
-          animationType="rotate"
-          timeScale={0.5}
-          height={3.5}
-          baseWidth={5.5}
-          scale={3.6}
-          hueShift={0}
-          colorFrequency={1}
-          noise={0.3}
-          glow={1}
+    <>
+      {showLanding ? (
+        <LandingPage onGetStarted={handleGetStarted} />
+      ) : (
+        <ServicesPage 
+          user={user} 
+          onLogout={handleLogout}
+          idToken={idToken}
         />
-      </div>
-
-      {/* Auth Header */}
-      <div className="auth-header">
-        {user ? (
-          <div className="user-info">
-            <span className="user-email">👤 {user.email}</span>
-            <button onClick={handleLogout} className="logout-btn">Logout</button>
-          </div>
-        ) : (
-          <button onClick={() => setShowAuthModal(true)} className="login-btn">Login</button>
-        )}
-      </div>
-      
-      <div className="card">
-        <h1 className="title">URL Tools</h1>
-        <div className="service-toggle" role="tablist" aria-label="Services">
-          <button className={`service-btn ${service==='shorten' ? 'active' : ''}`} onClick={()=>setService('shorten')}>
-            Shorten
-          </button>
-          <button className={`service-btn ${service==='encrypt' ? 'active' : ''}`} onClick={()=>setService('encrypt')}>
-            Encrypt
-          </button>
-        </div>
-        <div className="input-container">
-          <input
-            type="url"
-            placeholder={service==='shorten' ? 'Paste your long URL to shorten...' : 'Paste your long URL to encrypt...' }
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            onKeyPress={handleKeyPress}
-            className="url-input"
-            disabled={loading}
-          />
-          <button 
-            onClick={handleAction}
-            disabled={!url.trim() || loading}
-            className="shorten-button"
-          >
-            {loading ? (service==='shorten' ? 'Shortening...' : 'Encrypting...') : (service==='shorten' ? 'Shorten' : 'Encrypt')}
-          </button>
-          {service==='encrypt' && (
-            <button
-              onClick={handleDecrypt}
-              disabled={!url.trim() || loading}
-              className="secondary-button"
-              title="Decrypt an encrypted URL or code"
-            >
-              {loading ? 'Working...' : 'Decrypt'}
-            </button>
-          )}
-        </div>
-        
-        {error && (
-          <div className="error-container">
-            <p className="error-message">❌ {error}</p>
-          </div>
-        )}
-
-        {shortLink && (
-          <div className="result-container">
-            <p className="result-label">{service==='shorten' ? 'Your shortened URL:' : 'Your encrypted link:'}</p>
-            <a
-              href={shortLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="short-link"
-            >
-              {shortLink}
-            </a>
-            <div className="button-group">
-              <button
-                onClick={() => navigator.clipboard.writeText(shortLink)}
-                className="copy-button"
-                title="Copy to clipboard"
-              >
-                📋 Copy
-              </button>
-              <button
-                onClick={() => window.open(shortLink, '_blank')}
-                className="test-button"
-                title={service==='shorten' ? 'Test the short link' : 'Open encrypted link (will auto-decrypt)'}
-              >
-                🔗 Test
-              </button>
-            </div>
-          </div>
-        )}
-
-        {service==='encrypt' && decryptResult && (
-          <div className="result-container">
-            <p className="result-label">Decrypted URL:</p>
-            <a
-              href={decryptResult}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="short-link"
-            >
-              {decryptResult}
-            </a>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Auth Modal */}
       {showAuthModal && (
         <AuthModal onClose={() => setShowAuthModal(false)} />
       )}
-    </div>
+    </>
   )
 }
 

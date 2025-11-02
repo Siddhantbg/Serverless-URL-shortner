@@ -3,12 +3,14 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
   GoogleAuthProvider 
 } from 'firebase/auth';
 import { auth } from '../firebase';
 import './AuthModal.css';
 
 const AuthModal = ({ onClose, onSuccess }) => {
+  const [useRedirect, setUseRedirect] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,7 +28,7 @@ const AuthModal = ({ onClose, onSuccess }) => {
       } else {
         await createUserWithEmailAndPassword(auth, email, password);
       }
-      onSuccess();
+      if (onSuccess) onSuccess();
       onClose();
     } catch (err) {
       setError(err.message);
@@ -40,11 +42,27 @@ const AuthModal = ({ onClose, onSuccess }) => {
     setLoading(true);
     try {
       const provider = new GoogleAuthProvider();
+      
+      // Use redirect if popup fails (fixes COOP issues)
+      if (useRedirect) {
+        await signInWithRedirect(auth, provider);
+        // Redirect will happen, no need to call onClose
+        return;
+      }
+      
       await signInWithPopup(auth, provider);
-      onSuccess();
+      if (onSuccess) onSuccess();
       onClose();
     } catch (err) {
-      setError(err.message);
+      console.log('Google sign-in error:', err.code, err.message);
+      
+      // If popup fails due to COOP, suggest using redirect
+      if (err.code === 'auth/popup-blocked' || err.message.includes('popup')) {
+        setError('Popup blocked. Click "Try Redirect" below.');
+        setUseRedirect(true);
+      } else if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -98,8 +116,14 @@ const AuthModal = ({ onClose, onSuccess }) => {
             <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
             <path fill="none" d="M0 0h48v48H0z"/>
           </svg>
-          Continue with Google
+          {useRedirect ? 'Try Redirect Method' : 'Continue with Google'}
         </button>
+        
+        {useRedirect && (
+          <p className="auth-info">
+            Using redirect method to avoid popup issues
+          </p>
+        )}
 
         <p className="toggle-auth">
           {isLogin ? "Don't have an account?" : "Already have an account?"}
