@@ -78,13 +78,15 @@ const ServicesPage = ({ user, onLogout, idToken }) => {
           colors={["#667eea", "#764ba2", "#f093fb"]}
           rotation={45}
           speed={0.25}
-          scale={1.3}
-          frequency={1.2}
-          warpStrength={1.1}
+          scale={1.15}
+          frequency={1.4}
+          warpStrength={1.3}
           mouseInfluence={0.7}
           parallax={0.5}
           noise={0.06}
           transparent
+          brightness={1.5}
+          alpha={1.3}
         />
       </div>
 

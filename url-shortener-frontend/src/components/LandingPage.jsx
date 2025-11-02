@@ -7,16 +7,20 @@ const LandingPage = ({ onGetStarted }) => {
       {/* Background ColorBends Effect */}
       <div className="landing-colorbends-background">
         <ColorBends
-          colors={["#667eea", "#764ba2", "#f093fb"]}
-          rotation={30}
-          speed={0.3}
-          scale={1.2}
-          frequency={1.4}
-          warpStrength={1.2}
-          mouseInfluence={0.8}
-          parallax={0.6}
-          noise={0.08}
+          /* Spectral preset: leave colors empty to enable banded RGB dispersion */
+          colors={[]}
+          rotation={-18}
+          speed={0.22}
+          scale={1.0}
+          frequency={1.6}
+          warpStrength={1.55}
+          mouseInfluence={0.6}
+          parallax={0.5}
+          noise={0.05}
           transparent
+          brightness={1.9}
+          alpha={1.0}
+          additive
         />
       </div>
 

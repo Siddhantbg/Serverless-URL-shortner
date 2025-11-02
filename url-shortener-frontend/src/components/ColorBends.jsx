@@ -20,6 +20,8 @@ uniform vec2 uPointer; // in NDC [-1,1]
 uniform float uMouseInfluence;
 uniform float uParallax;
 uniform float uNoise;
+uniform float uBrightness;
+uniform float uAlpha;
 varying vec2 vUv;
 
 void main() {
@@ -83,8 +85,10 @@ void main() {
       col = clamp(col, 0.0, 1.0);
     }
 
-    vec3 rgb = (uTransparent > 0) ? col * a : col;
-    gl_FragColor = vec4(rgb, a);
+  vec3 rgb = (uTransparent > 0) ? col * a : col;
+  rgb = clamp(rgb * uBrightness, 0.0, 1.0);
+  float outA = (uTransparent > 0) ? clamp(a * uAlpha, 0.0, 1.0) : 1.0;
+  gl_FragColor = vec4(rgb, outA);
 }
 `;
 
@@ -109,7 +113,10 @@ export default function ColorBends({
   warpStrength = 1,
   mouseInfluence = 1,
   parallax = 0.5,
-  noise = 0.1
+  noise = 0.1,
+  brightness = 1.0,
+  alpha = 1.0,
+  additive = false
 }) {
   const containerRef = useRef(null);
   const rendererRef = useRef(null);
@@ -146,10 +153,14 @@ export default function ColorBends({
         uPointer: { value: new THREE.Vector2(0, 0) },
         uMouseInfluence: { value: mouseInfluence },
         uParallax: { value: parallax },
-        uNoise: { value: noise }
+        uNoise: { value: noise },
+        uBrightness: { value: brightness },
+        uAlpha: { value: alpha }
       },
       premultipliedAlpha: true,
-      transparent: true
+      transparent: true,
+      depthWrite: false,
+      blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending
     });
     materialRef.current = material;
 
@@ -221,7 +232,7 @@ export default function ColorBends({
         container.removeChild(renderer.domElement);
       }
     };
-  }, [frequency, mouseInfluence, noise, parallax, scale, speed, transparent, warpStrength]);
+  }, [frequency, mouseInfluence, noise, parallax, scale, speed, transparent, warpStrength, brightness, alpha, additive]);
 
   useEffect(() => {
     const material = materialRef.current;
@@ -237,6 +248,11 @@ export default function ColorBends({
     material.uniforms.uMouseInfluence.value = mouseInfluence;
     material.uniforms.uParallax.value = parallax;
     material.uniforms.uNoise.value = noise;
+  material.uniforms.uBrightness.value = brightness;
+  material.uniforms.uAlpha.value = alpha;
+    if (renderer) {
+      renderer.sortObjects = false;
+    }
 
     const toVec3 = hex => {
       const h = hex.replace('#', '').trim();
@@ -268,7 +284,9 @@ export default function ColorBends({
     parallax,
     noise,
     colors,
-    transparent
+    transparent,
+    brightness,
+    alpha
   ]);
 
   useEffect(() => {
