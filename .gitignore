@@ -18,3 +18,11 @@ url-shortener-worker/dist/
 # Ignore OS generated files
 .DS_Store
 Thumbs.db
+
+# Ignore markdown test files (keep README.md)
+**/*test*.md
+**/*.test.md
+**/*.spec.md
+**/tests/**/*.md
+# Ignore generated project info file
+docs/info.md

@@ -4,6 +4,90 @@
 // Base62 characters for short code generation
 const BASE62_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
+/**
+ * Verify Firebase ID token
+ * Returns the decoded token payload if valid, or null if invalid
+ */
+async function verifyFirebaseToken(token, projectId) {
+  if (!token) return null;
+  
+  try {
+    // Split the JWT token
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    
+    // Decode the payload
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    
+    // Basic validation checks
+    const now = Math.floor(Date.now() / 1000);
+    
+    // Check expiration
+    if (!payload.exp || payload.exp < now) {
+      return null;
+    }
+    
+    // Check issued at time (not issued in the future)
+    if (!payload.iat || payload.iat > now) {
+      return null;
+    }
+    
+    // Check audience (should match Firebase project ID)
+    if (payload.aud !== projectId) {
+      return null;
+    }
+    
+    // Check issuer
+    const expectedIssuer = `https://securetoken.google.com/${projectId}`;
+    if (payload.iss !== expectedIssuer) {
+      return null;
+    }
+    
+    // Check auth_time
+    if (!payload.auth_time || payload.auth_time > now) {
+      return null;
+    }
+    
+    // Check subject (user ID) exists
+    if (!payload.sub || typeof payload.sub !== 'string' || payload.sub.length === 0) {
+      return null;
+    }
+    
+    // Token is valid
+    return payload;
+  } catch (err) {
+    console.error('Token verification error:', err);
+    return null;
+  }
+}
+
+/**
+ * Middleware to verify authentication
+ * Returns the user payload if authenticated, or a 401 Response if not
+ */
+async function requireAuth(request, env) {
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return new Response(JSON.stringify({ error: 'Unauthorized: Missing token' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+  
+  const token = authHeader.substring(7); // Remove "Bearer " prefix
+  const projectId = env.FIREBASE_PROJECT_ID || 'krizpay-1d84a'; // Default to your project
+  const payload = await verifyFirebaseToken(token, projectId);
+  
+  if (!payload) {
+    return new Response(JSON.stringify({ error: 'Unauthorized: Invalid token' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+  
+  return payload; // Return user data
+}
+
 async function kvGet(env, key) {
   if (!env || !env.URLS) {
     throw new Error('KV binding URLS is not configured');
@@ -135,9 +219,16 @@ async function decryptCode(env, code) {
 }
 
 /**
- * Handle POST /shorten - Create a short URL
+ * Handle POST /shorten - Create a short URL (Protected)
  */
 async function handleShortenRequest(request, env) {
+  // Require authentication
+  const authResult = await requireAuth(request, env);
+  if (authResult instanceof Response) {
+    return authResult; // Return 401 error
+  }
+  const userPayload = authResult; // Decoded token payload
+  
   // 1) Parse body with robust fallback
   let body = null;
   const req1 = request.clone();
@@ -194,7 +285,13 @@ async function handleShortenRequest(request, env) {
       ), request, env);
     }
 
-    const record = { url: originalUrl, createdAt: new Date().toISOString(), clicks: 0 };
+    const record = { 
+      url: originalUrl, 
+      createdAt: new Date().toISOString(), 
+      clicks: 0,
+      userId: userPayload.sub, // Store user ID
+      userEmail: userPayload.email || null
+    };
     await kvPut(env, shortCode, JSON.stringify(record));
 
     const shortUrl = `${new URL(request.url).origin}/${shortCode}`;
@@ -297,8 +394,14 @@ export default {
       return handleStatsRequest(shortCode, env);
     }
 
-    // Route: POST /encrypt - Stateless encryption; returns code and e-link
+    // Route: POST /encrypt - Stateless encryption; returns code and e-link (Protected)
     if (method === 'POST' && pathname === '/encrypt') {
+      // Require authentication
+      const authResult = await requireAuth(request, env);
+      if (authResult instanceof Response) {
+        return authResult; // Return 401 error
+      }
+      
       try {
         let longUrl = '';
         try { const raw = await request.text(); longUrl = raw ? (JSON.parse(raw).url || '') : ''; } catch {}

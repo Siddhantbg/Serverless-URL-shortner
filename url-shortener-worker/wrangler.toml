@@ -13,6 +13,8 @@ kv_namespaces = [
 ALLOWED_ORIGINS = "*"
 # Token to access /healthz endpoint (set to empty to disable check)
 HEALTHZ_TOKEN = ""
+# Firebase Project ID for token verification
+FIREBASE_PROJECT_ID = "krizpay-1d84a"
 # Encryption key for AES-GCM is stored as a Cloudflare Secret named ENCRYPTION_KEY
 
 [env.production]

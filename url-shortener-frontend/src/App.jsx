@@ -1,6 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import Prism from './components/Prism'
+import AuthModal from './components/AuthModal'
+import { auth } from './firebase'
+import { onAuthStateChanged, signOut } from 'firebase/auth'
 
 function App() {
   const [url, setUrl] = useState('')
@@ -9,11 +12,32 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [decryptResult, setDecryptResult] = useState('')
+  const [user, setUser] = useState(null)
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [idToken, setIdToken] = useState(null)
 
   // API base configured via Vite env (fallback to local Worker in dev)
   const WORKER_URL = (import.meta.env?.VITE_API_BASE || 'http://127.0.0.1:8787').replace(/\/$/, '')
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser)
+      if (currentUser) {
+        const token = await currentUser.getIdToken()
+        setIdToken(token)
+      } else {
+        setIdToken(null)
+      }
+    })
+    return () => unsubscribe()
+  }, [])
+
   const handleAction = async () => {
+    if (!user) {
+      setShowAuthModal(true)
+      return
+    }
+
     if (!url.trim()) return
 
     setLoading(true)
@@ -28,9 +52,13 @@ function App() {
       } else {
         endpoint = '/encrypt'
       }
+      const headers = { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`
+      }
       const response = await fetch(`${WORKER_URL}${endpoint}?url=${encodeURIComponent(url.trim())}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ url: url.trim() })
       })
       const data = await response.json()
@@ -45,6 +73,16 @@ function App() {
       console.error('Error:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth)
+      setShortLink('')
+      setDecryptResult('')
+    } catch (err) {
+      console.error('Logout error:', err)
     }
   }
 
@@ -99,6 +137,18 @@ function App() {
           noise={0.3}
           glow={1}
         />
+      </div>
+
+      {/* Auth Header */}
+      <div className="auth-header">
+        {user ? (
+          <div className="user-info">
+            <span className="user-email">👤 {user.email}</span>
+            <button onClick={handleLogout} className="logout-btn">Logout</button>
+          </div>
+        ) : (
+          <button onClick={() => setShowAuthModal(true)} className="login-btn">Login</button>
+        )}
       </div>
       
       <div className="card">
@@ -190,6 +240,11 @@ function App() {
           </div>
         )}
       </div>
+
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <AuthModal onClose={() => setShowAuthModal(false)} />
+      )}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// .wrangler/tmp/bundle-g0Hd9w/checked-fetch.js
+// .wrangler/tmp/bundle-ubERqu/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -29,6 +29,59 @@ globalThis.fetch = new Proxy(globalThis.fetch, {
 
 // src/index.js
 var BASE62_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+async function verifyFirebaseToken(token, projectId) {
+  if (!token) return null;
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    const now = Math.floor(Date.now() / 1e3);
+    if (!payload.exp || payload.exp < now) {
+      return null;
+    }
+    if (!payload.iat || payload.iat > now) {
+      return null;
+    }
+    if (payload.aud !== projectId) {
+      return null;
+    }
+    const expectedIssuer = `https://securetoken.google.com/${projectId}`;
+    if (payload.iss !== expectedIssuer) {
+      return null;
+    }
+    if (!payload.auth_time || payload.auth_time > now) {
+      return null;
+    }
+    if (!payload.sub || typeof payload.sub !== "string" || payload.sub.length === 0) {
+      return null;
+    }
+    return payload;
+  } catch (err) {
+    console.error("Token verification error:", err);
+    return null;
+  }
+}
+__name(verifyFirebaseToken, "verifyFirebaseToken");
+async function requireAuth(request, env) {
+  const authHeader = request.headers.get("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Unauthorized: Missing token" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+  const token = authHeader.substring(7);
+  const projectId = env.FIREBASE_PROJECT_ID || "krizpay-1d84a";
+  const payload = await verifyFirebaseToken(token, projectId);
+  if (!payload) {
+    return new Response(JSON.stringify({ error: "Unauthorized: Invalid token" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+  return payload;
+}
+__name(requireAuth, "requireAuth");
 async function kvGet(env, key) {
   if (!env || !env.URLS) {
     throw new Error("KV binding URLS is not configured");
@@ -147,6 +200,11 @@ async function decryptCode(env, code) {
 }
 __name(decryptCode, "decryptCode");
 async function handleShortenRequest(request, env) {
+  const authResult = await requireAuth(request, env);
+  if (authResult instanceof Response) {
+    return authResult;
+  }
+  const userPayload = authResult;
   let body = null;
   const req1 = request.clone();
   try {
@@ -193,7 +251,14 @@ async function handleShortenRequest(request, env) {
         { status: 500, headers: { "Content-Type": "application/json" } }
       ), request, env);
     }
-    const record = { url: originalUrl, createdAt: (/* @__PURE__ */ new Date()).toISOString(), clicks: 0 };
+    const record = {
+      url: originalUrl,
+      createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+      clicks: 0,
+      userId: userPayload.sub,
+      // Store user ID
+      userEmail: userPayload.email || null
+    };
     await kvPut(env, shortCode, JSON.stringify(record));
     const shortUrl = `${new URL(request.url).origin}/${shortCode}`;
     return addCORSHeaders(new Response(
@@ -273,6 +338,10 @@ var src_default = {
       return handleStatsRequest(shortCode, env);
     }
     if (method === "POST" && pathname === "/encrypt") {
+      const authResult = await requireAuth(request, env);
+      if (authResult instanceof Response) {
+        return authResult;
+      }
       try {
         let longUrl = "";
         try {
@@ -456,7 +525,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-g0Hd9w/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-ubERqu/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -488,7 +557,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-g0Hd9w/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-ubERqu/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
