@@ -9,15 +9,15 @@
   justify-content: center;
 }
 
-/* Prism Background */
-.landing-prism-background {
+/* ColorBends Background */
+.landing-colorbends-background {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   z-index: 0;
-  opacity: 0.9;
+  opacity: 1;
 }
 
 /* Main Content */
