@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import Prism from './Prism'
+import ColorBends from './ColorBends'
 import './ServicesPage.css'
 
 const ServicesPage = ({ user, onLogout, idToken }) => {
@@ -72,18 +72,19 @@ const ServicesPage = ({ user, onLogout, idToken }) => {
 
   return (
     <div className="services-container">
-      {/* Background Prism Effect */}
-      <div className="services-prism-background">
-        <Prism
-          animationType="rotate"
-          timeScale={0.5}
-          height={3.5}
-          baseWidth={5.5}
-          scale={3.6}
-          hueShift={0}
-          colorFrequency={1}
-          noise={0.3}
-          glow={1}
+      {/* Background ColorBends Effect */}
+      <div className="services-colorbends-background">
+        <ColorBends
+          colors={["#667eea", "#764ba2", "#f093fb"]}
+          rotation={45}
+          speed={0.25}
+          scale={1.3}
+          frequency={1.2}
+          warpStrength={1.1}
+          mouseInfluence={0.7}
+          parallax={0.5}
+          noise={0.06}
+          transparent
         />
       </div>
 

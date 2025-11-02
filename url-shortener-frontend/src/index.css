@@ -2,8 +2,19 @@
   font-family: 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #213547;
-  background-color: #ffffff;
+  
+  /* Dark theme colors matching ColorBends gradient */
+  --color-primary: #667eea;
+  --color-secondary: #764ba2;
+  --color-accent: #f093fb;
+  --color-bg-dark: #1a1a2e;
+  --color-bg-darker: #0f0f1e;
+  --color-text-light: #ffffff;
+  --color-text-muted: rgba(255, 255, 255, 0.7);
+  
+  color: var(--color-text-light);
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -18,4 +29,6 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: var(--color-text-light);
 }

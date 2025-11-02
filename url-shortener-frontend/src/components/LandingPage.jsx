@@ -7,7 +7,7 @@ const LandingPage = ({ onGetStarted }) => {
       {/* Background ColorBends Effect */}
       <div className="landing-colorbends-background">
         <ColorBends
-          colors={["#ff5c7a", "#8a5cff", "#00ffd1"]}
+          colors={["#667eea", "#764ba2", "#f093fb"]}
           rotation={30}
           speed={0.3}
           scale={1.2}

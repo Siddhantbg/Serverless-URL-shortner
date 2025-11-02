@@ -133,18 +133,18 @@
 }
 
 .auth-button.primary {
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(10px);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   margin-top: 0.5rem;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
 .auth-button.primary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.35);
+  background: linear-gradient(135deg, #764ba2 0%, #f093fb 100%);
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 20px rgba(240, 147, 251, 0.5);
 }
 
 .auth-button.google {
@@ -196,17 +196,17 @@
 .toggle-button {
   background: none;
   border: none;
-  color: white;
+  color: #f093fb;
   font-weight: 600;
   cursor: pointer;
   text-decoration: underline;
   margin-left: 0.5rem;
   font-family: 'Poppins', sans-serif;
-  transition: opacity 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .toggle-button:hover {
-  opacity: 0.8;
+  color: #667eea;
 }
 
 .auth-info {
