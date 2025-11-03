@@ -65,19 +65,19 @@ __name(verifyFirebaseToken, "verifyFirebaseToken");
 async function requireAuth(request, env) {
   const authHeader = request.headers.get("Authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({ error: "Unauthorized: Missing token" }), {
+    return addCORSHeaders(new Response(JSON.stringify({ error: "Unauthorized: Missing token" }), {
       status: 401,
       headers: { "Content-Type": "application/json" }
-    });
+    }), request, env);
   }
   const token = authHeader.substring(7);
   const projectId = env.FIREBASE_PROJECT_ID || "krizpay-1d84a";
   const payload = await verifyFirebaseToken(token, projectId);
   if (!payload) {
-    return new Response(JSON.stringify({ error: "Unauthorized: Invalid token" }), {
+    return addCORSHeaders(new Response(JSON.stringify({ error: "Unauthorized: Invalid token" }), {
       status: 401,
       headers: { "Content-Type": "application/json" }
-    });
+    }), request, env);
   }
   return payload;
 }
@@ -129,8 +129,9 @@ function handleCORS(request, env) {
     headers: {
       "Access-Control-Allow-Origin": allowOrigin,
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-      "Access-Control-Max-Age": "86400"
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Max-Age": "86400",
+      "Vary": "Origin"
     }
   });
 }
@@ -139,7 +140,8 @@ function addCORSHeaders(response, request, env) {
   const allowOrigin = resolveCorsOrigin(request, env);
   response.headers.set("Access-Control-Allow-Origin", allowOrigin);
   response.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  response.headers.set("Access-Control-Allow-Headers", "Content-Type");
+  response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  response.headers.set("Vary", "Origin");
   return response;
 }
 __name(addCORSHeaders, "addCORSHeaders");

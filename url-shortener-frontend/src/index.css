@@ -7,13 +7,13 @@
   --color-primary: #667eea;
   --color-secondary: #764ba2;
   --color-accent: #f093fb;
-  --color-bg-dark: #1a1a2e;
-  --color-bg-darker: #0f0f1e;
+  --color-bg-dark: #000000;
+  --color-bg-darker: #000000;
   --color-text-light: #ffffff;
   --color-text-muted: rgba(255, 255, 255, 0.7);
   
   color: var(--color-text-light);
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: #000000;
   
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -29,6 +29,6 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: #000000;
   color: var(--color-text-light);
 }
