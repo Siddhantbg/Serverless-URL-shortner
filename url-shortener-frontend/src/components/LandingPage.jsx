@@ -6,22 +6,81 @@ const LandingPage = ({ onGetStarted }) => {
     <div className="landing-container">
       {/* Background ColorBends Effect */}
       <div className="landing-colorbends-background">
-        <ColorBends
-          colors={["#ff5c7a", "#8a5cff", "#00ffd1"]}
-          rotation={30}
-          speed={0.3}
-          scale={1.2}
-          frequency={1.4}
-          warpStrength={1.2}
-          mouseInfluence={0.8}
-          parallax={0.6}
-          noise={0.08}
-          transparent
-          /* Make arcs pop on black background */
-          brightness={1.85}
-          alpha={1.35}
-          additive
-        />
+        {/* Left arc (existing) */}
+        <div className="cb-layer" style={{ width: '130vw', height: '130vh', top: '-15vh', left: '-20vw' }}>
+          <ColorBends
+            colors={["#ff5c7a", "#8a5cff", "#00ffd1"]}
+            rotation={30}
+            speed={0.3}
+            scale={1.2}
+            frequency={1.4}
+            warpStrength={1.2}
+            mouseInfluence={0.8}
+            parallax={0.6}
+            noise={0.08}
+            transparent
+            brightness={1.85}
+            alpha={1.35}
+            additive
+          />
+        </div>
+
+        {/* Right arc (mirror) */}
+        <div className="cb-layer" style={{ width: '130vw', height: '130vh', top: '-20vh', right: '-20vw' }}>
+          <ColorBends
+            colors={["#ff5c7a", "#8a5cff", "#00ffd1"]}
+            rotation={-25}
+            speed={0.28}
+            scale={1.15}
+            frequency={1.45}
+            warpStrength={1.25}
+            mouseInfluence={0.7}
+            parallax={0.5}
+            noise={0.07}
+            transparent
+            brightness={1.7}
+            alpha={1.25}
+            additive
+          />
+        </div>
+
+        {/* Random arc #1 (bottom-left) */}
+        <div className="cb-layer" style={{ width: '120vw', height: '120vh', top: '35vh', left: '-10vw' }}>
+          <ColorBends
+            colors={["#ff5c7a", "#8a5cff", "#00ffd1"]}
+            rotation={15}
+            speed={0.26}
+            scale={1.1}
+            frequency={1.5}
+            warpStrength={1.3}
+            mouseInfluence={0.6}
+            parallax={0.5}
+            noise={0.06}
+            transparent
+            brightness={1.55}
+            alpha={1.2}
+            additive
+          />
+        </div>
+
+        {/* Random arc #2 (top-right) */}
+        <div className="cb-layer" style={{ width: '110vw', height: '110vh', top: '-10vh', left: '40vw' }}>
+          <ColorBends
+            colors={["#ff5c7a", "#8a5cff", "#00ffd1"]}
+            rotation={-40}
+            speed={0.24}
+            scale={1.05}
+            frequency={1.55}
+            warpStrength={1.32}
+            mouseInfluence={0.6}
+            parallax={0.4}
+            noise={0.06}
+            transparent
+            brightness={1.5}
+            alpha={1.15}
+            additive
+          />
+        </div>
       </div>
 
       {/* Main Content */}
