@@ -10,7 +10,8 @@ const ServicesPage = ({ user, onLogout, idToken }) => {
   const [error, setError] = useState('')
   const [decryptResult, setDecryptResult] = useState('')
 
-  const WORKER_URL = (import.meta.env?.VITE_API_BASE || 'http://127.0.0.1:8787').replace(/\/$/, '')
+  // Use production URL as default, fallback to localhost for local development
+  const WORKER_URL = (import.meta.env?.VITE_API_BASE || 'https://url-shortener-worker.cloudproject.workers.dev').replace(/\/$/, '')
 
   const handleAction = async () => {
     if (!url.trim()) return
