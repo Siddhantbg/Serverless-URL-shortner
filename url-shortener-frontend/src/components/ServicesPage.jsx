@@ -50,6 +50,19 @@ const ServicesPage = ({ user, onLogout, idToken }) => {
 
   const handleDecrypt = async () => {
     if (!url.trim()) return
+    
+    // Check if the input is already a plain URL (not encrypted)
+    try {
+      const testUrl = new URL(url.trim())
+      // If it's a valid URL and doesn't contain /e/ path, it's likely already decrypted
+      if (!testUrl.pathname.includes('/e/')) {
+        setError('⚠️ This appears to be a regular URL, not an encrypted link. Encrypted links have the format: domain/e/CODE')
+        return
+      }
+    } catch {
+      // If URL parsing fails, it might be just the code, continue with decryption
+    }
+    
     setLoading(true)
     setError('')
     setShortLink('')
@@ -61,7 +74,13 @@ const ServicesPage = ({ user, onLogout, idToken }) => {
         body: JSON.stringify({ encryptedUrl: url.trim() })
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to decrypt')
+      if (!res.ok) {
+        // Better error messages
+        if (data.error && data.error.toLowerCase().includes('invalid code')) {
+          throw new Error('❌ Invalid encrypted code. Please check the link and try again.')
+        }
+        throw new Error(data.error || 'Failed to decrypt')
+      }
       setDecryptResult(data.url)
     } catch (err) {
       setError(err.message || 'Failed to decrypt')
