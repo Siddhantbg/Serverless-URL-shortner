@@ -17,6 +17,10 @@ const LandingPage = ({ onGetStarted }) => {
           parallax={0.6}
           noise={0.08}
           transparent
+          /* Make arcs pop on black background */
+          brightness={1.85}
+          alpha={1.35}
+          additive
         />
       </div>
 
