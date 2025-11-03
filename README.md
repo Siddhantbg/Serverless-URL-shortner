@@ -4,7 +4,7 @@ A full-stack serverless application built on Cloudflare Workers with two core se
 
 ## Architecture
 
-![Serverless URL Shortener Architecture](./assets/architecture-diagram.png)
+![Serverless URL Shortener Architecture](./assets/ChatGPT%20Image%20Nov%203,%202025,%2002_39_25%20PM.png)
 
 The system architecture consists of four main layers:
 - **Frontend Layer**: React 19 + Vite SPA with Firebase Authentication
