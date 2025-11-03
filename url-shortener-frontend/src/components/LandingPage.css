@@ -20,15 +20,6 @@
   opacity: 1;
 }
 
-/* Positionable layers that host a full-bleed ColorBends inside */
-.cb-layer {
-  position: absolute;
-  pointer-events: none;
-  /* Default anchor; individual layers override via inline left/right/top */
-  left: 0;
-  top: 0;
-}
-
 /* Main Content */
 .landing-content {
   position: relative;
