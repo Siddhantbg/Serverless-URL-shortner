@@ -1,6 +1,16 @@
 # Serverless URL Shortener
 
-A simple serverless URL shortener project with a frontend built using Vite + React and a backend worker using Cloudflare Workers.
+A full-stack serverless application built on Cloudflare Workers with two core services: URL Shortening and Encrypted Link generation. Features Firebase Authentication, AES-256-GCM encryption, and global edge deployment.
+
+## Architecture
+
+![Serverless URL Shortener Architecture](./assets/architecture-diagram.png)
+
+The system architecture consists of four main layers:
+- **Frontend Layer**: React 19 + Vite SPA with Firebase Authentication
+- **Edge Computing Layer**: Cloudflare Workers for serverless API endpoints
+- **Authentication Layer**: Firebase for user management and token verification
+- **Storage Layer**: Cloudflare KV for distributed key-value storage
 
 ## Project Structure
 
@@ -9,10 +19,30 @@ A simple serverless URL shortener project with a frontend built using Vite + Rea
 - `api-test.html` — HTML file for testing API endpoints
 
 ## Features
-- Shorten long URLs to easy-to-share short links
-- Redirect short URLs to their original destinations
-- Simple web interface for users
-- Serverless backend for scalability and low cost
+
+### URL Shortening Service
+- 🔗 Shorten long URLs with custom or auto-generated aliases
+- 🚀 Lightning-fast redirects via Cloudflare's global edge network
+- 🗑️ Delete short URLs with authentication
+- 📊 Track creation timestamps and user ownership
+
+### Encrypted Link Service
+- 🔐 AES-256-GCM encryption for sensitive URLs
+- 🔑 Password-protected link access
+- 🛡️ Client-side and server-side encryption support
+- 🔒 Secure key derivation using PBKDF2
+
+### Authentication & Security
+- 🔥 Firebase Authentication (Email/Password + Google OAuth)
+- 🎫 JWT token verification on edge
+- 🔐 Protected endpoints with Bearer token authorization
+- 🌐 CORS enabled with secure headers
+
+### Performance & Scalability
+- ⚡ Sub-50ms response times globally
+- 🌍 Deployed across 150+ Cloudflare edge locations
+- 📈 Auto-scaling with zero configuration
+- 💰 Pay-per-request serverless pricing
 
 ## Getting Started
 
