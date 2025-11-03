@@ -10,7 +10,7 @@ const LandingPage = ({ onGetStarted }) => {
         <ColorBends
           colors={["#ff5c7a", "#8a5cff", "#00ffd1"]}
           rotation={30}
-          speed={0.3}
+          speed={0.15}
           scale={1.2}
           frequency={1.4}
           warpStrength={1.2}
@@ -21,13 +21,14 @@ const LandingPage = ({ onGetStarted }) => {
           brightness={1.85}
           alpha={1.35}
           additive
+          autoRotate={2}
         />
         {/* Right corner arc */}
         <div style={{ position: 'absolute', inset: 0 }}>
           <ColorBends
             colors={["#8a5cff", "#00ffd1", "#ff5c7a"]}
             rotation={-45}
-            speed={0.25}
+            speed={0.12}
             scale={1.3}
             frequency={1.5}
             warpStrength={1.3}
@@ -38,6 +39,7 @@ const LandingPage = ({ onGetStarted }) => {
             brightness={1.7}
             alpha={1.2}
             additive
+            autoRotate={-1.5}
           />
         </div>
         {/* Top-center arc */}
@@ -45,7 +47,7 @@ const LandingPage = ({ onGetStarted }) => {
           <ColorBends
             colors={["#00ffd1", "#ff5c7a", "#8a5cff"]}
             rotation={120}
-            speed={0.35}
+            speed={0.18}
             scale={1.1}
             frequency={1.3}
             warpStrength={1.4}
@@ -56,6 +58,7 @@ const LandingPage = ({ onGetStarted }) => {
             brightness={1.6}
             alpha={1.1}
             additive
+            autoRotate={1.8}
           />
         </div>
         {/* Bottom-right arc */}
@@ -63,7 +66,7 @@ const LandingPage = ({ onGetStarted }) => {
           <ColorBends
             colors={["#ff5c7a", "#00ffd1", "#8a5cff"]}
             rotation={-120}
-            speed={0.28}
+            speed={0.14}
             scale={1.25}
             frequency={1.35}
             warpStrength={1.25}
@@ -74,6 +77,7 @@ const LandingPage = ({ onGetStarted }) => {
             brightness={1.75}
             alpha={1.25}
             additive
+            autoRotate={-2.2}
           />
         </div>
       </div>
