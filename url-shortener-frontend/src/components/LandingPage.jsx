@@ -1,85 +1,27 @@
-import ColorBends from './ColorBends'
+import PixelSnow from './PixelSnow'
+import ElectricBorder from './ElectricBorder'
+import PixelCard from './PixelCard'
 import './LandingPage.css'
 
 const LandingPage = ({ onGetStarted }) => {
   return (
     <div className="landing-container">
-      {/* Background ColorBends Effect - Multiple Layers */}
-      <div className="landing-colorbends-background">
-        {/* Left corner arc */}
-        <ColorBends
-          colors={["#ff5c7a", "#8a5cff", "#00ffd1"]}
-          rotation={30}
-          speed={0.15}
-          scale={1.2}
-          frequency={1.4}
-          warpStrength={1.2}
-          mouseInfluence={0.8}
-          parallax={0.6}
-          noise={0.08}
-          transparent
-          brightness={1.85}
-          alpha={1.35}
-          additive
-          autoRotate={2}
+      {/* Background PixelSnow Effect */}
+      <div className="landing-background">
+        <PixelSnow
+          color="#ffffff"
+          flakeSize={0.01}
+          minFlakeSize={1.25}
+          pixelResolution={200}
+          speed={1.25}
+          density={0.3}
+          direction={125}
+          brightness={1}
+          depthFade={8}
+          farPlane={20}
+          gamma={0.4545}
+          variant="square"
         />
-        {/* Right corner arc */}
-        <div style={{ position: 'absolute', inset: 0 }}>
-          <ColorBends
-            colors={["#8a5cff", "#00ffd1", "#ff5c7a"]}
-            rotation={-45}
-            speed={0.12}
-            scale={1.3}
-            frequency={1.5}
-            warpStrength={1.3}
-            mouseInfluence={0.7}
-            parallax={0.5}
-            noise={0.06}
-            transparent
-            brightness={1.7}
-            alpha={1.2}
-            additive
-            autoRotate={-1.5}
-          />
-        </div>
-        {/* Top-center arc */}
-        <div style={{ position: 'absolute', inset: 0 }}>
-          <ColorBends
-            colors={["#00ffd1", "#ff5c7a", "#8a5cff"]}
-            rotation={120}
-            speed={0.18}
-            scale={1.1}
-            frequency={1.3}
-            warpStrength={1.4}
-            mouseInfluence={0.9}
-            parallax={0.7}
-            noise={0.07}
-            transparent
-            brightness={1.6}
-            alpha={1.1}
-            additive
-            autoRotate={1.8}
-          />
-        </div>
-        {/* Bottom-right arc */}
-        <div style={{ position: 'absolute', inset: 0 }}>
-          <ColorBends
-            colors={["#ff5c7a", "#00ffd1", "#8a5cff"]}
-            rotation={-120}
-            speed={0.14}
-            scale={1.25}
-            frequency={1.35}
-            warpStrength={1.25}
-            mouseInfluence={0.75}
-            parallax={0.55}
-            noise={0.09}
-            transparent
-            brightness={1.75}
-            alpha={1.25}
-            additive
-            autoRotate={-2.2}
-          />
-        </div>
       </div>
 
       {/* Main Content */}
@@ -124,27 +66,38 @@ const LandingPage = ({ onGetStarted }) => {
         {/* Why Serverless Section */}
         <div className="info-section">
           <h2 className="section-title">Why Serverless?</h2>
-          <div className="info-grid">
-            <div className="info-card">
-              <div className="info-icon">☁️</div>
-              <h3>Zero Infrastructure</h3>
-              <p>Cloudflare Workers execute on demand at the edge. No servers, VMs, or containers to manage.</p>
-            </div>
-            <div className="info-card">
-              <div className="info-icon">🌍</div>
-              <h3>Global Distribution</h3>
-              <p>Deployed across 300+ edge locations worldwide for minimal latency and maximum availability.</p>
-            </div>
-            <div className="info-card">
-              <div className="info-icon">📈</div>
-              <h3>Auto-Scaling</h3>
-              <p>Handles millions of requests seamlessly. Pay only for what you use with no idle costs.</p>
-            </div>
-            <div className="info-card">
-              <div className="info-icon">⚡</div>
-              <h3>Edge Storage</h3>
-              <p>Cloudflare KV provides globally replicated key-value storage with eventual consistency.</p>
-            </div>
+          <div className="info-stack">
+            <PixelCard variant="blue" className="info-pixel-card">
+              <div className="info-card-content">
+                <div className="info-icon">☁️</div>
+                <h3>Zero Infrastructure</h3>
+                <p>Cloudflare Workers execute on demand at the edge. No servers, VMs, or containers to manage.</p>
+              </div>
+            </PixelCard>
+
+            <PixelCard variant="blue" className="info-pixel-card">
+              <div className="info-card-content">
+                <div className="info-icon">🌍</div>
+                <h3>Global Distribution</h3>
+                <p>Deployed across 300+ edge locations worldwide for minimal latency and maximum availability.</p>
+              </div>
+            </PixelCard>
+
+            <PixelCard variant="blue" className="info-pixel-card">
+              <div className="info-card-content">
+                <div className="info-icon">📈</div>
+                <h3>Auto-Scaling</h3>
+                <p>Handles millions of requests seamlessly. Pay only for what you use with no idle costs.</p>
+              </div>
+            </PixelCard>
+
+            <PixelCard variant="blue" className="info-pixel-card">
+              <div className="info-card-content">
+                <div className="info-icon">⚡</div>
+                <h3>Edge Storage</h3>
+                <p>Cloudflare KV provides globally replicated key-value storage with eventual consistency.</p>
+              </div>
+            </PixelCard>
           </div>
         </div>
 
@@ -152,33 +105,53 @@ const LandingPage = ({ onGetStarted }) => {
         <div className="services-showcase">
           <h2 className="section-title">Two Powerful Services</h2>
           <div className="services-grid">
-            <div className="service-showcase-card">
-              <div className="service-number">01</div>
-              <div className="service-icon">�</div>
-              <h3>URL Shortening</h3>
-              <p>Create compact 6-character Base62 codes backed by Cloudflare KV. Each short URL includes:</p>
-              <ul className="service-features">
-                <li>✓ Real-time click tracking and analytics</li>
-                <li>✓ Global 302 redirects at edge locations</li>
-                <li>✓ User attribution (Firebase Auth)</li>
-                <li>✓ Public stats endpoint for monitoring</li>
-              </ul>
-              <div className="service-badge">Persistent Storage</div>
-            </div>
+            <ElectricBorder
+              color="#7df9ff"
+              speed={1}
+              chaos={0.12}
+              borderRadius={20}
+              className="electric-card"
+            >
+              <div className="service-showcase-card">
+                <div className="service-header">
+                  <div className="service-number">01</div>
+                  <div className="service-diamond">◆</div>
+                </div>
+                <h3>URL Shortening</h3>
+                <p className="service-description">Create compact 6-character Base62 codes backed by Cloudflare KV. Each short URL includes:</p>
+                <ul className="service-features">
+                  <li>✓ Real-time click tracking and analytics</li>
+                  <li>✓ Global 302 redirects at edge locations</li>
+                  <li>✓ User attribution (Firebase Auth)</li>
+                  <li>✓ Public stats endpoint for monitoring</li>
+                </ul>
+                <div className="service-badge">Persistent Storage</div>
+              </div>
+            </ElectricBorder>
 
-            <div className="service-showcase-card">
-              <div className="service-number">02</div>
-              <div className="service-icon">�</div>
-              <h3>Encrypted Links</h3>
-              <p>Stateless encryption using AES-GCM cryptography. No database storage required:</p>
-              <ul className="service-features">
-                <li>✓ 256-bit AES-GCM with 12-byte IV</li>
-                <li>✓ Base64url encoded for URL safety</li>
-                <li>✓ Decrypt on-the-fly at redirect time</li>
-                <li>✓ Zero storage overhead</li>
-              </ul>
-              <div className="service-badge">Cryptographically Secure</div>
-            </div>
+            <ElectricBorder
+              color="#7df9ff"
+              speed={1}
+              chaos={0.12}
+              borderRadius={20}
+              className="electric-card"
+            >
+              <div className="service-showcase-card">
+                <div className="service-header">
+                  <div className="service-number">02</div>
+                  <div className="service-diamond">◆</div>
+                </div>
+                <h3>Encrypted Links</h3>
+                <p className="service-description">Stateless encryption using AES-GCM cryptography. No database storage required:</p>
+                <ul className="service-features">
+                  <li>✓ 256-bit AES-GCM with 12-byte IV</li>
+                  <li>✓ Base64url encoded for URL safety</li>
+                  <li>✓ Decrypt on-the-fly at redirect time</li>
+                  <li>✓ Zero storage overhead</li>
+                </ul>
+                <div className="service-badge">Cryptographically Secure</div>
+              </div>
+            </ElectricBorder>
           </div>
         </div>
 
@@ -220,43 +193,47 @@ const LandingPage = ({ onGetStarted }) => {
         <div className="api-section">
           <h2 className="section-title">API Endpoints</h2>
           <div className="endpoint-grid">
-            <div className="endpoint-category">
-              <h4>🔗 Shortening (Protected)</h4>
-              <div className="endpoint-item">
-                <span className="http-method post">POST</span>
-                <code>/shorten</code>
-                <p>Create short URL (requires auth)</p>
+            <PixelCard variant="default" className="endpoint-pixel-card">
+              <div className="endpoint-category">
+                <h4>🔗 Shortening (Protected)</h4>
+                <div className="endpoint-item">
+                  <span className="http-method post">POST</span>
+                  <code>/shorten</code>
+                  <p>Create short URL (requires auth)</p>
+                </div>
+                <div className="endpoint-item">
+                  <span className="http-method get">GET</span>
+                  <code>/:code</code>
+                  <p>Redirect to original URL</p>
+                </div>
+                <div className="endpoint-item">
+                  <span className="http-method get">GET</span>
+                  <code>/stats/:code</code>
+                  <p>Get URL statistics</p>
+                </div>
               </div>
-              <div className="endpoint-item">
-                <span className="http-method get">GET</span>
-                <code>/:code</code>
-                <p>Redirect to original URL</p>
-              </div>
-              <div className="endpoint-item">
-                <span className="http-method get">GET</span>
-                <code>/stats/:code</code>
-                <p>Get URL statistics</p>
-              </div>
-            </div>
+            </PixelCard>
 
-            <div className="endpoint-category">
-              <h4>🔐 Encryption (Protected)</h4>
-              <div className="endpoint-item">
-                <span className="http-method post">POST</span>
-                <code>/encrypt</code>
-                <p>Encrypt URL (requires auth)</p>
+            <PixelCard variant="default" className="endpoint-pixel-card">
+              <div className="endpoint-category">
+                <h4>🔐 Encryption (Protected)</h4>
+                <div className="endpoint-item">
+                  <span className="http-method post">POST</span>
+                  <code>/encrypt</code>
+                  <p>Encrypt URL (requires auth)</p>
+                </div>
+                <div className="endpoint-item">
+                  <span className="http-method get">GET</span>
+                  <code>/e/:code</code>
+                  <p>Decrypt and redirect</p>
+                </div>
+                <div className="endpoint-item">
+                  <span className="http-method post">POST</span>
+                  <code>/decrypt</code>
+                  <p>Decrypt to JSON</p>
+                </div>
               </div>
-              <div className="endpoint-item">
-                <span className="http-method get">GET</span>
-                <code>/e/:code</code>
-                <p>Decrypt and redirect</p>
-              </div>
-              <div className="endpoint-item">
-                <span className="http-method post">POST</span>
-                <code>/decrypt</code>
-                <p>Decrypt to JSON</p>
-              </div>
-            </div>
+            </PixelCard>
           </div>
           <p className="api-note">
             <strong>Note:</strong> Protected endpoints require <code>Authorization: Bearer &lt;Firebase-ID-Token&gt;</code> header
@@ -267,31 +244,57 @@ const LandingPage = ({ onGetStarted }) => {
         <div className="tech-stack-section">
           <h2 className="section-title">Built with Cutting-Edge Technology</h2>
           <div className="tech-categories">
-            <div className="tech-category">
-              <h4>Frontend</h4>
-              <div className="tech-badges">
-                <span className="tech-badge">React 19</span>
-                <span className="tech-badge">Vite 7</span>
-                <span className="tech-badge">Three.js</span>
-                <span className="tech-badge">Firebase Auth</span>
+            <ElectricBorder
+              color="#7df9ff"
+              speed={1}
+              chaos={0.12}
+              borderRadius={20}
+              className="tech-electric-card"
+            >
+              <div className="tech-category">
+                <h4>Frontend</h4>
+                <div className="tech-badges">
+                  <span className="tech-badge">React 19</span>
+                  <span className="tech-badge">Vite 7</span>
+                  <span className="tech-badge">Three.js</span>
+                  <span className="tech-badge">Firebase Auth</span>
+                </div>
               </div>
-            </div>
-            <div className="tech-category">
-              <h4>Backend</h4>
-              <div className="tech-badges">
-                <span className="tech-badge">Cloudflare Workers</span>
-                <span className="tech-badge">Cloudflare KV</span>
-                <span className="tech-badge">Wrangler v4</span>
+            </ElectricBorder>
+
+            <ElectricBorder
+              color="#7df9ff"
+              speed={1}
+              chaos={0.12}
+              borderRadius={20}
+              className="tech-electric-card"
+            >
+              <div className="tech-category">
+                <h4>Backend</h4>
+                <div className="tech-badges">
+                  <span className="tech-badge">Cloudflare Workers</span>
+                  <span className="tech-badge">Cloudflare KV</span>
+                  <span className="tech-badge">Wrangler v4</span>
+                </div>
               </div>
-            </div>
-            <div className="tech-category">
-              <h4>Security</h4>
-              <div className="tech-badges">
-                <span className="tech-badge">AES-GCM 256</span>
-                <span className="tech-badge">JWT Tokens</span>
-                <span className="tech-badge">CORS</span>
+            </ElectricBorder>
+
+            <ElectricBorder
+              color="#7df9ff"
+              speed={1}
+              chaos={0.12}
+              borderRadius={20}
+              className="tech-electric-card"
+            >
+              <div className="tech-category">
+                <h4>Security</h4>
+                <div className="tech-badges">
+                  <span className="tech-badge">AES-GCM 256</span>
+                  <span className="tech-badge">JWT Tokens</span>
+                  <span className="tech-badge">CORS</span>
+                </div>
               </div>
-            </div>
+            </ElectricBorder>
           </div>
         </div>
 
